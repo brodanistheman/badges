@@ -3,6 +3,7 @@ const PROXY_URL = "https://badges.brodanistheman.workers.dev";
 let currentUserId = null;
 let currentCode = "";
 let loadedBadges = [];
+let currentMode = "username"; // Modes: 'username', 'userid', 'gameid'
 
 const ADJECTIVES = ["red", "blue", "green", "happy", "swift", "cool", "calm", "bright", "small", "kind"];
 const NOUNS = ["cat", "dog", "fox", "owl", "bear", "frog", "duck", "lion", "fish", "bird"];
@@ -17,27 +18,52 @@ function generateNaturalSentence() {
   return `the ${adj} ${noun} ${verb} ${adv}`;
 }
 
-// 1. Submit Button Handler
+// Mode Selector
+window.setMode = function(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`tab-${mode}`).classList.add('active');
+  
+  const input = document.getElementById('username-input');
+  const label = document.getElementById('input-label');
+  document.getElementById('code-section').style.display = 'none';
+
+  if (mode === 'username') {
+    label.innerText = "Enter a Roblox Username:";
+    input.placeholder = "e.g. Builderman";
+  } else if (mode === 'userid') {
+    label.innerText = "Enter a Numerical Player User ID:";
+    input.placeholder = "e.g. 156";
+  } else if (mode === 'gameid') {
+    label.innerText = "Enter a Game Universe ID:";
+    input.placeholder = "e.g. 8870926683";
+  }
+};
+
+// Main Submit Action
 document.getElementById('gen-code-btn').onclick = async () => {
   const inputVal = document.getElementById('username-input').value.trim();
-  if (!inputVal) return alert("Please enter a Roblox Username, User ID, or Game Universe ID");
+  if (!inputVal) return alert("Please fill in the input field.");
 
-  // Handle Pure Numbers
-  if (!isNaN(inputVal) && Number(inputVal) > 0) {
-    const numericId = parseInt(inputVal, 10);
+  // Direct Game ID Lookup
+  if (currentMode === 'gameid') {
+    if (isNaN(inputVal)) return alert("Game Universe ID must be a number!");
     document.getElementById('auth-card').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-
-    // Game Universe IDs are currently 10-digit/higher numbers (e.g., 8870926683)
-    if (numericId > 3000000000) {
-      await fetchGameBadges(numericId);
-    } else {
-      await fetchUserOwnedBadges(numericId);
-    }
+    await fetchGameBadges(inputVal);
     return;
   }
 
-  // Handle Username Lookup
+  // Direct User ID Lookup (Unverified direct view)
+  if (currentMode === 'userid') {
+    if (isNaN(inputVal)) return alert("User ID must be a number!");
+    document.getElementById('auth-card').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await fetchUserOwnedBadges(inputVal);
+    return;
+  }
+
+  // Username Lookup with Profile Verification
   try {
     const res = await fetch(`${PROXY_URL}/api/get-user-id`, {
       method: 'POST',
@@ -45,17 +71,16 @@ document.getElementById('gen-code-btn').onclick = async () => {
       body: JSON.stringify({ usernames: [inputVal], excludeBannedUsers: true })
     });
 
-    if (!res.ok) throw new Error(`Server returned status ${res.status}`);
+    if (!res.ok) throw new Error(`Server status ${res.status}`);
 
     const data = await res.json();
-
     if (data && data.data && data.data.length > 0 && data.data[0].id) {
       currentUserId = parseInt(data.data[0].id, 10);
       currentCode = generateNaturalSentence();
       document.getElementById('verification-phrase').innerText = currentCode;
       document.getElementById('code-section').style.display = 'block';
     } else {
-      alert("Username not found on Roblox. Make sure to enter the exact username.");
+      alert("Username not found on Roblox.");
     }
   } catch (err) {
     alert("Error looking up username. Check browser console.");
@@ -63,9 +88,9 @@ document.getElementById('gen-code-btn').onclick = async () => {
   }
 };
 
-// 2. Profile Verification Button Handler
+// Profile Verification Handler
 document.getElementById('verify-btn').onclick = async () => {
-  if (!currentUserId) return alert("No User ID set. Try submitting your username again.");
+  if (!currentUserId) return alert("No User ID available.");
 
   try {
     const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
@@ -87,11 +112,11 @@ document.getElementById('verify-btn').onclick = async () => {
   }
 };
 
-// 3. Fetch Badges Owned by Player
+// Fetch Player Owned Badges
 async function fetchUserOwnedBadges(userId) {
   const loading = document.getElementById('loading');
   loading.style.display = 'block';
-  loading.innerText = `Fetching player badges for User ID #${userId}...`;
+  loading.innerText = `Fetching badges for Player User ID #${userId}...`;
 
   let rawBadges = [];
   let cursor = "";
@@ -103,7 +128,11 @@ async function fetchUserOwnedBadges(userId) {
         : `${PROXY_URL}/api/badges/${userId}`;
 
       const res = await fetch(url);
-      if (!res.ok) break;
+      if (!res.ok) {
+        const errData = await res.json();
+        console.error("Roblox API Error:", errData);
+        break;
+      }
 
       const data = await res.json();
       if (data && Array.isArray(data.data)) {
@@ -119,7 +148,7 @@ async function fetchUserOwnedBadges(userId) {
       return;
     }
 
-    // Fetch Icons
+    // Badge Icon Loader
     const badgeIds = rawBadges.map(item => item.id).filter(Boolean).slice(0, 100).join(',');
     let iconMap = {};
 
@@ -133,7 +162,7 @@ async function fetchUserOwnedBadges(userId) {
           });
         }
       } catch (e) {
-        console.warn("Badge icon fetch failed:", e);
+        console.warn("Badge icon load failed:", e);
       }
     }
 
@@ -150,7 +179,7 @@ async function fetchUserOwnedBadges(userId) {
   }
 }
 
-// 4. Fetch Badges Belonging to a Game Universe
+// Fetch Game Universe Badges
 async function fetchGameBadges(universeId) {
   const loading = document.getElementById('loading');
   loading.style.display = 'block';
@@ -191,7 +220,7 @@ async function fetchGameBadges(universeId) {
   }
 }
 
-// 5. Render Cards
+// Render Badge Cards
 function renderBadges(badges) {
   const container = document.getElementById('game-list');
   container.innerHTML = "";
@@ -225,7 +254,7 @@ function renderBadges(badges) {
   });
 }
 
-// 6. Filter Search Bar
+// Search Bar Filter
 document.getElementById('search-bar').oninput = (e) => {
   const query = e.target.value.toLowerCase();
   const filtered = loadedBadges.filter(item => {
