@@ -1,174 +1,202 @@
 const PROXY_URL = "https://badges.brodanistheman.workers.dev";
-let loadedBadges = [];
 
-// Step 1: Handle Button Click - Convert Username to User ID
+let currentUserId = null;
+let currentCode = "";
+let gamesData = [];
+
+const ADJECTIVES = ["red", "blue", "green", "happy", "swift", "cool", "calm", "bright", "small", "kind"];
+const NOUNS = ["cat", "dog", "fox", "owl", "bear", "frog", "duck", "lion", "fish", "bird"];
+const VERBS = ["jumped", "played", "ran", "danced", "slept", "flew", "walked", "swam", "sang", "smiled"];
+const ADVERBS = ["today", "quickly", "outside", "happily", "around", "everywhere", "together", "away"];
+
+function generateNaturalSentence() {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
+  const adv = ADVERBS[Math.floor(Math.random() * ADVERBS.length)];
+  return `the ${adj} ${noun} ${verb} ${adv}`;
+}
+
+// 1. Get Code Button
 document.getElementById('gen-code-btn').onclick = async () => {
   const username = document.getElementById('username-input').value.trim();
-  if (!username) {
-    return alert("Please enter a Roblox username!");
-  }
+  if (!username) return alert("Please enter a username");
 
-  const loading = document.getElementById('loading');
-  document.getElementById('auth-card').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  loading.style.display = 'block';
-  loading.innerText = `Fetching user ID for "${username}"...`;
-
-  console.log(`[DEBUG] Starting badge fetch for username: ${username}`);
-
-  // Get User ID from Username
-  const userId = await getUserIdFromUsername(username);
-  
-  if (!userId) {
-    loading.innerText = 'User not found! Check the username and try again.';
-    document.getElementById('auth-card').style.display = 'block';
-    document.getElementById('app').style.display = 'none';
-    console.error('[DEBUG] User ID not found for username:', username);
-    return;
-  }
-
-  console.log(`[DEBUG] Got user ID: ${userId}`);
-  loading.innerText = `Fetching badges for ${username} (ID: ${userId})...`;
-  await fetchUserBadges(userId);
-};
-
-// Step 2: Convert Username to User ID
-async function getUserIdFromUsername(username) {
   try {
-    console.log('[DEBUG] Calling /api/get-user-id with username:', username);
     const res = await fetch(`${PROXY_URL}/api/get-user-id`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [username] })
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
     });
 
-    console.log(`[DEBUG] get-user-id response status: ${res.status}`);
-
-    if (!res.ok) {
-      console.error('[DEBUG] API Error:', res.status, res.statusText);
-      return null;
-    }
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
 
     const data = await res.json();
-    console.log('[DEBUG] get-user-id response:', JSON.stringify(data, null, 2));
-    
-    // Extract user ID from response
-    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-      return data.data[0].id;
+    if (data.data && data.data.length > 0) {
+      currentUserId = data.data[0].id;
+      currentCode = generateNaturalSentence();
+      document.getElementById('verification-phrase').innerText = currentCode;
+      document.getElementById('code-section').style.display = 'block';
+    } else {
+      alert("Username not found on Roblox.");
     }
-    
-    console.warn('[DEBUG] No user found in response');
-    return null;
   } catch (err) {
-    console.error("[DEBUG] getUserIdFromUsername Error:", err);
-    return null;
+    alert("Error fetching user ID. See console for details.");
+    console.error(err);
   }
-}
+};
 
-// Step 3: Fetch User's Earned Badges
-async function fetchUserBadges(userId) {
+// 2. Verify Button
+document.getElementById('verify-btn').onclick = async () => {
+  try {
+    const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
+    const user = await res.json();
+    
+    const profileText = ((user.about || user.description) || "").toLowerCase();
+    const searchPhrase = currentCode.toLowerCase();
+
+    if (profileText.includes(searchPhrase)) {
+      document.getElementById('auth-card').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadBadgesAndGames();
+    } else {
+      alert(`Verification phrase "${currentCode}" was not found in your Roblox description!`);
+    }
+  } catch (err) {
+    alert("Error checking profile. See console for details.");
+    console.error(err);
+  }
+};
+
+// 3. Load User Earned Badges
+async function loadBadgesAndGames() {
   const loading = document.getElementById('loading');
-  let allBadges = [];
+  loading.style.display = 'block';
+  loading.innerText = 'Fetching badges from Roblox...';
+
+  let rawBadges = [];
   let cursor = "";
-  let pageNum = 0;
 
   try {
-    // Fetch up to 3 pages of badges
     for (let i = 0; i < 3; i++) {
-      pageNum = i + 1;
       const url = cursor 
-        ? `${PROXY_URL}/api/badges/${userId}?cursor=${cursor}`
-        : `${PROXY_URL}/api/badges/${userId}`;
-      
-      console.log(`[DEBUG] Fetching page ${pageNum}: ${url}`);
-      loading.innerText = `Loading badges (page ${pageNum})...`;
-      
-      const res = await fetch(url);
-      
-      console.log(`[DEBUG] Page ${pageNum} response status: ${res.status}`);
+        ? `${PROXY_URL}/api/badges/${currentUserId}?cursor=${cursor}`
+        : `${PROXY_URL}/api/badges/${currentUserId}`;
 
+      const res = await fetch(url);
       if (!res.ok) {
-        console.error(`[DEBUG] Fetch error on page ${pageNum}: ${res.status} ${res.statusText}`);
+        console.error(`Fetch error: ${res.status}`);
         break;
       }
 
       const data = await res.json();
-      console.log(`[DEBUG] Page ${pageNum} response:`, JSON.stringify(data, null, 2));
-
-      // Add badges to array
       if (data && Array.isArray(data.data)) {
-        console.log(`[DEBUG] Page ${pageNum} has ${data.data.length} badges`);
-        allBadges.push(...data.data);
-      } else {
-        console.warn(`[DEBUG] Page ${pageNum} data is not an array or missing`);
+        rawBadges.push(...data.data);
       }
 
-      // Check if there are more pages
-      if (!data || !data.nextPageCursor) {
-        console.log('[DEBUG] No more pages (no nextPageCursor)');
-        break;
-      }
-
+      if (!data || !data.nextPageCursor) break;
       cursor = data.nextPageCursor;
-      console.log(`[DEBUG] Next cursor: ${cursor}`);
     }
 
-    console.log(`[DEBUG] Total badges collected: ${allBadges.length}`);
-
-    if (allBadges.length === 0) {
-      loading.innerText = 'No badges found for this user.';
-      console.warn('[DEBUG] No badges found in any response');
+    if (rawBadges.length === 0) {
+      loading.innerText = 'No badges found for this user (or inventory is set to private).';
       return;
     }
 
-    loadedBadges = allBadges;
+    const grouped = {};
+    rawBadges.forEach(item => {
+      const badgeObj = item.badge || item;
+      const uId = (badgeObj.awarder && badgeObj.awarder.id) ? badgeObj.awarder.id : 'Other / Special Badges';
+
+      if (!grouped[uId]) grouped[uId] = [];
+      grouped[uId].push(badgeObj);
+    });
+
+    const universeIds = Object.keys(grouped).filter(id => id !== 'Other / Special Badges');
+    loading.innerText = `Found badges across ${universeIds.length} games. Fetching game info...`;
+
+    gamesData = Object.keys(grouped).map(uId => ({
+      name: uId === 'Other / Special Badges' ? 'Other Badges' : `Game Universe #${uId}`,
+      universeId: uId,
+      badges: grouped[uId]
+    }));
+
+    if (universeIds.length > 0) {
+      try {
+        const gameRes = await fetch(`${PROXY_URL}/api/games`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ universeIds })
+        });
+        const gameInfo = await gameRes.json();
+
+        if (gameInfo && Array.isArray(gameInfo.data)) {
+          const nameMap = {};
+          gameInfo.data.forEach(g => { nameMap[g.id] = g.name; });
+
+          gamesData.forEach(game => {
+            if (nameMap[game.universeId]) {
+              game.name = nameMap[game.universeId];
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Could not retrieve game titles.");
+      }
+    }
+
     loading.style.display = 'none';
-    renderBadges(loadedBadges);
+    renderGames(gamesData);
   } catch (err) {
-    loading.innerText = 'Error loading badges. Check console for details.';
-    console.error("[DEBUG] fetchUserBadges Error:", err);
+    loading.innerText = 'An error occurred while loading badges.';
+    console.error("loadBadgesAndGames error:", err);
   }
 }
 
-// Step 4: Render Badges Grid
-function renderBadges(badges) {
+// 4. Render Interface
+function renderGames(games) {
   const container = document.getElementById('game-list');
   container.innerHTML = "";
 
-  console.log(`[DEBUG] Rendering ${badges.length} badges`);
-
-  if (badges.length === 0) {
+  if (games.length === 0) {
     container.innerHTML = "<p>No badges found.</p>";
     return;
   }
 
-  badges.forEach((badge, index) => {
+  games.forEach(game => {
     const card = document.createElement('div');
     card.className = 'game-card';
-
-    console.log(`[DEBUG] Badge ${index}:`, badge);
-
-    // Display badge information
     card.innerHTML = `
-      <h3>${badge.name || 'Unnamed Badge'}</h3>
-      <p style="font-size: 0.85em; opacity: 0.8;">${badge.description || 'No description provided.'}</p>
-      <small>Badge ID: ${badge.id}</small>
+      <h3>${game.name}</h3>
+      <small>${game.badges.length} Badges Earned</small>
     `;
+
+    const drawer = document.createElement('div');
+    drawer.className = 'badge-drawer';
+    drawer.style.display = 'none';
+
+    game.badges.forEach(b => {
+      drawer.innerHTML += `
+        <div class="badge-item">
+          <span>${b.name || 'Badge'}</span>
+        </div>
+      `;
+    });
+
+    card.onclick = () => {
+      const isVisible = drawer.style.display === 'grid';
+      drawer.style.display = isVisible ? 'none' : 'grid';
+      card.classList.toggle('active', !isVisible);
+    };
+
+    card.appendChild(drawer);
     container.appendChild(card);
   });
 }
 
-// Step 5: Search Filter Bar
+// 5. Search Filter
 document.getElementById('search-bar').oninput = (e) => {
   const query = e.target.value.toLowerCase();
-  
-  const filtered = loadedBadges.filter(b =>
-    (b.name && b.name.toLowerCase().includes(query)) ||
-    (b.description && b.description.toLowerCase().includes(query))
-  );
-
-  console.log(`[DEBUG] Search query: "${query}" - Found ${filtered.length} matches`);
-  renderBadges(filtered);
+  const filtered = gamesData.filter(g => g.name.toLowerCase().includes(query));
+  renderGames(filtered);
 };
-
-console.log('[DEBUG] app.js loaded and ready');
