@@ -11,14 +11,22 @@
   <!-- Input Card -->
   <div id="auth-card" class="card">
     <h2>Roblox Badge Showcase</h2>
-    <p>Enter a Roblox Username or Universe ID:</p>
+    
+    <!-- Explicit Mode Switcher -->
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+      <button id="tab-username" class="tab-btn active" onclick="setMode('username')">Username</button>
+      <button id="tab-userid" class="tab-btn" onclick="setMode('userid')">User ID</button>
+      <button id="tab-gameid" class="tab-btn" onclick="setMode('gameid')">Game ID</button>
+    </div>
+
+    <p id="input-label">Enter a Roblox Username:</p>
     
     <div class="input-group">
-      <input type="text" id="username-input" placeholder="Username or Game ID">
+      <input type="text" id="username-input" placeholder="e.g. RobloxUser">
       <button id="gen-code-btn">Submit</button>
     </div>
 
-    <div id="code-section" style="display: none;">
+    <div id="code-section" style="display: none; margin-top: 15px;">
       <p>Paste this phrase into your Roblox profile <b>About</b> section:</p>
       <div id="verification-phrase" class="phrase-box"></div>
       <button id="verify-btn" class="primary-btn">Verify Profile</button>
@@ -36,6 +44,6 @@
     <div id="game-list" class="horizontal-scroll"></div>
   </div>
 
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>
