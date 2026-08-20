@@ -19,7 +19,7 @@
     </div>
 
     <div id="code-section" style="display: none;">
-      <p>Paste this string into your Roblox profile <b>About</b> section:</p>
+      <p>Paste this sentence into your Roblox profile <b>About</b> section:</p>
       <div id="verification-phrase" class="phrase-box"></div>
       <button id="verify-btn" class="primary-btn">2. Check Verification</button>
     </div>
@@ -32,10 +32,12 @@
       <input type="text" id="search-bar" placeholder="Search played games...">
     </header>
 
-    <div id="loading" style="display:none;">Loading badges and game details...</div>
+    <!-- Essential element needed by app.js -->
+    <div id="loading" style="padding: 10px; font-weight: bold; color: #3b82f6;">Loading badges and game details...</div>
+    
     <div id="game-list" class="horizontal-scroll"></div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
