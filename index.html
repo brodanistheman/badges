@@ -3,31 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Badge Showcase - DEBUG VERSION</title>
+  <title>Roblox Badge Showcase</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    .debug-banner {
-      background-color: #ff9800;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-    .debug-note {
-      background-color: #fff3cd;
-      border: 1px solid #ffc107;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-      font-size: 0.9em;
-    }
-  </style>
 </head>
 <body>
-  <div class="debug-banner">
-    🔧 DEBUG MODE - Check Console (F12) for detailed logs
-  </div>
 
   <!-- Verification Card -->
   <div id="auth-card" class="card">
@@ -35,16 +14,14 @@
     <p>Enter your Roblox username to fetch your badges:</p>
     
     <div class="input-group">
-      <input type="text" id="username-input" placeholder="Enter Roblox Username (exact case)">
-      <button id="gen-code-btn">Fetch My Badges</button>
+      <input type="text" id="username-input" placeholder="Roblox Username">
+      <button id="gen-code-btn">1. Get Code</button>
     </div>
 
-    <div class="debug-note">
-      <strong>Debug Tips:</strong><br>
-      • Open DevTools with F12<br>
-      • Click Console tab<br>
-      • Look for [DEBUG] messages<br>
-      • Username must be exact (case-sensitive)
+    <div id="code-section" style="display: none;">
+      <p>Paste this phrase into your Roblox profile <b>About</b> section:</p>
+      <div id="verification-phrase" class="phrase-box"></div>
+      <button id="verify-btn" class="primary-btn">2. Check Verification</button>
     </div>
   </div>
 
@@ -52,13 +29,13 @@
   <div id="app" style="display: none;">
     <header>
       <h1>Badges Showcase</h1>
-      <input type="text" id="search-bar" placeholder="Search badges...">
+      <input type="text" id="search-bar" placeholder="Search played games...">
     </header>
-    <div id="loading" style="padding: 10px; font-weight: bold; color: #3b82f6;">Loading badges...</div>
+
+    <div id="loading" style="padding: 10px; font-weight: bold; color: #3b82f6;">Loading badges and game details...</div>
     <div id="game-list" class="horizontal-scroll"></div>
   </div>
 
-  <!-- Use the debug version -->
-  <script src="app-debug.js?v=1"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
