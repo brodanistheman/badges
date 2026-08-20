@@ -3,33 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Game Badges Showcase</title>
+  <title>Roblox Badge Showcase</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Game ID Input Card -->
+  <!-- Input Card -->
   <div id="auth-card" class="card">
-    <h2>Roblox Game Badge Viewer</h2>
-    <p>Enter a Game Universe ID to fetch its badges:</p>
+    <h2>Roblox Badge Showcase</h2>
+    <p>Enter a Roblox Username or Universe ID:</p>
     
     <div class="input-group">
-      <input type="text" id="username-input" placeholder="e.g. 8870926683">
-      <button id="gen-code-btn">Load Game Badges</button>
+      <input type="text" id="username-input" placeholder="Username or Game ID">
+      <button id="gen-code-btn">Submit</button>
+    </div>
+
+    <div id="code-section" style="display: none;">
+      <p>Paste this phrase into your Roblox profile <b>About</b> section:</p>
+      <div id="verification-phrase" class="phrase-box"></div>
+      <button id="verify-btn" class="primary-btn">Verify Profile</button>
     </div>
   </div>
 
-  <!-- Main Display Interface -->
+  <!-- Main Interface -->
   <div id="app" style="display: none;">
     <header>
       <h1>Badges Showcase</h1>
-      <input type="text" id="search-bar" placeholder="Search game badges...">
+      <input type="text" id="search-bar" placeholder="Search badges...">
     </header>
 
     <div id="loading" style="padding: 10px; font-weight: bold; color: #3b82f6;">Loading badges...</div>
     <div id="game-list" class="horizontal-scroll"></div>
   </div>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
