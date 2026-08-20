@@ -3,18 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Badge Showcase</title>
+  <title>Roblox Badge Showcase - DEBUG VERSION</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .debug-banner {
+      background-color: #ff9800;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .debug-note {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+  </style>
 </head>
 <body>
+  <div class="debug-banner">
+    🔧 DEBUG MODE - Check Console (F12) for detailed logs
+  </div>
+
   <!-- Verification Card -->
   <div id="auth-card" class="card">
     <h2>Roblox Account Verification</h2>
     <p>Enter your Roblox username to fetch your badges:</p>
     
     <div class="input-group">
-      <input type="text" id="username-input" placeholder="Enter Roblox Username">
+      <input type="text" id="username-input" placeholder="Enter Roblox Username (exact case)">
       <button id="gen-code-btn">Fetch My Badges</button>
+    </div>
+
+    <div class="debug-note">
+      <strong>Debug Tips:</strong><br>
+      • Open DevTools with F12<br>
+      • Click Console tab<br>
+      • Look for [DEBUG] messages<br>
+      • Username must be exact (case-sensitive)
     </div>
   </div>
 
@@ -28,6 +58,7 @@
     <div id="game-list" class="horizontal-scroll"></div>
   </div>
 
-  <script src="app.js?v=9"></script>
+  <!-- Use the debug version -->
+  <script src="app-debug.js?v=1"></script>
 </body>
 </html>
