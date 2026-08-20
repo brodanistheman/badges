@@ -1,11 +1,10 @@
-// Connected to your active Cloudflare Worker Proxy
 const PROXY_URL = "https://badges.brodanistheman.workers.dev"; 
 
 let currentUserId = null;
 let currentCode = "";
 let gamesData = [];
 
-// Word banks to construct natural-sounding sentences
+// Natural sentence generator to prevent Roblox filter tags
 const ADJECTIVES = ["red", "blue", "green", "happy", "swift", "cool", "calm", "bright", "small", "kind"];
 const NOUNS = ["cat", "dog", "fox", "owl", "bear", "frog", "duck", "lion", "fish", "bird"];
 const VERBS = ["jumped", "played", "ran", "danced", "slept", "flew", "walked", "swam", "sang", "smiled"];
@@ -78,7 +77,6 @@ async function loadBadgesAndGames() {
   let cursor = "";
 
   try {
-    // Fetch pages of received badges
     for (let i = 0; i < 3; i++) {
       const res = await fetch(`${PROXY_URL}/api/badges/${currentUserId}?cursor=${cursor}`);
       const data = await res.json();
@@ -96,10 +94,9 @@ async function loadBadgesAndGames() {
       return;
     }
 
-    // Group Badges by Universe ID (Unwrapping Roblox's badge object structure)
     const grouped = {};
     rawBadges.forEach(item => {
-      const badgeObj = item.badge || item; // Handles nested badge object
+      const badgeObj = item.badge || item; 
       const uId = (badgeObj.awarder && badgeObj.awarder.id) ? badgeObj.awarder.id : 'unknown';
       
       if (!grouped[uId]) grouped[uId] = [];
@@ -110,14 +107,12 @@ async function loadBadgesAndGames() {
 
     loading.innerText = `Found badges across ${universeIds.length} games. Loading details...`;
 
-    // Create default game structures
     gamesData = universeIds.map(uId => ({
       name: `Game Universe #${uId}`,
       universeId: uId,
       badges: grouped[uId]
     }));
 
-    // Fetch Game Names
     if (universeIds.length > 0) {
       try {
         const gameRes = await fetch(`${PROXY_URL}/api/games`, {
@@ -150,7 +145,7 @@ async function loadBadgesAndGames() {
   }
 }
 
-// Render Games and Badge Drawers
+// Render Games
 function renderGames(games) {
   const container = document.getElementById('game-list');
   container.innerHTML = "";
@@ -191,10 +186,9 @@ function renderGames(games) {
   });
 }
 
-// Search Functionality
+// Search Bar
 document.getElementById('search-bar').oninput = (e) => {
   const query = e.target.value.toLowerCase();
   const filtered = gamesData.filter(g => g.name.toLowerCase().includes(query));
   renderGames(filtered);
 };
-
