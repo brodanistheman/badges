@@ -17,25 +17,16 @@ function generateNaturalSentence() {
   return `the ${adj} ${noun} ${verb} ${adv}`;
 }
 
-// 1. Get Code Button Handler
+// Get Code / Lookup User
 document.getElementById('gen-code-btn').onclick = async () => {
-  const inputVal = document.getElementById('username-input').value.trim();
-  if (!inputVal) return alert("Please enter a Roblox Username or Universe ID");
+  const username = document.getElementById('username-input').value.trim();
+  if (!username) return alert("Please enter a Roblox Username");
 
-  // Direct Universe ID entry (if numerical input)
-  if (!isNaN(inputVal)) {
-    document.getElementById('auth-card').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    await fetchGameBadges(inputVal);
-    return;
-  }
-
-  // Username lookup
   try {
     const res = await fetch(`${PROXY_URL}/api/get-user-id`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [inputVal], excludeBannedUsers: true })
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
     });
 
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -55,7 +46,7 @@ document.getElementById('gen-code-btn').onclick = async () => {
   }
 };
 
-// 2. Verification Button Handler
+// Verify Profile & Load Player Badges
 document.getElementById('verify-btn').onclick = async () => {
   try {
     const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
@@ -67,9 +58,9 @@ document.getElementById('verify-btn').onclick = async () => {
     if (profileText.includes(searchPhrase)) {
       document.getElementById('auth-card').style.display = 'none';
       document.getElementById('app').style.display = 'block';
-      await fetchUserBadges(currentUserId);
+      await fetchUserOwnedBadges(currentUserId);
     } else {
-      alert(`Verification phrase "${currentCode}" was not found in your Roblox description!`);
+      alert(`Verification phrase "${currentCode}" was not found in your Roblox profile description!`);
     }
   } catch (err) {
     alert("Error verifying profile.");
@@ -77,16 +68,17 @@ document.getElementById('verify-btn').onclick = async () => {
   }
 };
 
-// Fetch User Earned Badges
-async function fetchUserBadges(userId) {
+// Fetch Badges Owned by the Player
+async function fetchUserOwnedBadges(userId) {
   const loading = document.getElementById('loading');
   loading.style.display = 'block';
-  loading.innerText = 'Fetching user badges...';
+  loading.innerText = 'Fetching badges owned by player...';
 
   let rawBadges = [];
   let cursor = "";
 
   try {
+    // Fetch up to 3 pages (300 badges) owned by user
     for (let i = 0; i < 3; i++) {
       const url = cursor 
         ? `${PROXY_URL}/api/badges/${userId}?cursor=${cursor}`
@@ -105,61 +97,43 @@ async function fetchUserBadges(userId) {
     }
 
     if (rawBadges.length === 0) {
-      loading.innerText = 'No badges found for this user.';
+      loading.innerText = 'No badges found for this player.';
       return;
     }
 
-    loadedBadges = rawBadges;
-    loading.style.display = 'none';
-    renderBadges(loadedBadges);
-  } catch (err) {
-    loading.innerText = 'Error loading badges.';
-    console.error(err);
-  }
-}
-
-// Fetch Game Universe Badges
-async function fetchGameBadges(universeId) {
-  const loading = document.getElementById('loading');
-  loading.style.display = 'block';
-  loading.innerText = `Fetching game badges...`;
-
-  let allBadges = [];
-  let cursor = "";
-
-  try {
-    for (let i = 0; i < 3; i++) {
-      const url = cursor 
-        ? `${PROXY_URL}/api/game-badges/${universeId}?cursor=${cursor}`
-        : `${PROXY_URL}/api/game-badges/${universeId}`;
-
-      const res = await fetch(url);
-      if (!res.ok) break;
-
-      const data = await res.json();
-      if (data && Array.isArray(data.data)) {
-        allBadges.push(...data.data);
+    // Fetch Icons for the badges
+    const badgeIds = rawBadges.map(item => item.id).slice(0, 100).join(',');
+    let iconMap = {};
+    
+    if (badgeIds) {
+      try {
+        const iconRes = await fetch(`${PROXY_URL}/api/badge-icons?badgeIds=${badgeIds}`);
+        const iconData = await iconRes.json();
+        if (iconData && iconData.data) {
+          iconData.data.forEach(img => {
+            iconMap[img.targetId] = img.imageUrl;
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to load badge icons", e);
       }
-
-      if (!data || !data.nextPageCursor) break;
-      cursor = data.nextPageCursor;
     }
 
-    if (allBadges.length === 0) {
-      loading.innerText = 'No badges found for this Game Universe ID.';
-      return;
-    }
+    // Attach icons to badges
+    loadedBadges = rawBadges.map(b => ({
+      ...b,
+      iconUrl: iconMap[b.id] || ""
+    }));
 
-    loadedBadges = allBadges;
     loading.style.display = 'none';
     renderBadges(loadedBadges);
   } catch (err) {
-    loading.innerText = 'Error loading game badges.';
+    loading.innerText = 'Error loading player badges.';
     console.error(err);
   }
 }
 
-// Render Badge Display
+// Render Badge Cards
 function renderBadges(badges) {
   const container = document.getElementById('game-list');
   container.innerHTML = "";
@@ -169,14 +143,24 @@ function renderBadges(badges) {
     return;
   }
 
-  badges.forEach(item => {
-    const badge = item.badge || item;
+  badges.forEach(badge => {
     const card = document.createElement('div');
     card.className = 'game-card';
+    
+    const iconHtml = badge.iconUrl 
+      ? `<img src="${badge.iconUrl}" alt="${badge.name}" style="width:60px; height:60px; border-radius:8px; margin-bottom:10px;">`
+      : '';
+
+    const awardDate = badge.awardDate 
+      ? new Date(badge.awardDate).toLocaleDateString() 
+      : 'Earned';
+
     card.innerHTML = `
+      ${iconHtml}
       <h3>${badge.name || 'Unnamed Badge'}</h3>
       <p style="font-size: 0.85em; opacity: 0.8;">${badge.description || 'No description available.'}</p>
-      <small>Badge ID: ${badge.id}</small>
+      <small style="display:block;">Badge ID: ${badge.id}</small>
+      <small style="color: #10b981;">Awarded: ${awardDate}</small>
     `;
     container.appendChild(card);
   });
@@ -185,10 +169,9 @@ function renderBadges(badges) {
 // Search Filter
 document.getElementById('search-bar').oninput = (e) => {
   const query = e.target.value.toLowerCase();
-  const filtered = loadedBadges.filter(item => {
-    const b = item.badge || item;
-    return (b.name && b.name.toLowerCase().includes(query)) ||
-           (b.description && b.description.toLowerCase().includes(query));
-  });
+  const filtered = loadedBadges.filter(b => 
+    (b.name && b.name.toLowerCase().includes(query)) ||
+    (b.description && b.description.toLowerCase().includes(query))
+  );
   renderBadges(filtered);
 };
