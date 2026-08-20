@@ -197,3 +197,4 @@ document.getElementById('search-bar').oninput = (e) => {
   const filtered = gamesData.filter(g => g.name.toLowerCase().includes(query));
   renderGames(filtered);
 };
+
