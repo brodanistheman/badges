@@ -1,26 +1,119 @@
-* { box-sizing: border-box; }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f12; color: #fff; margin: 0; padding: 20px; }
+* { 
+  box-sizing: border-box; 
+}
 
-.card { background: #1a1a24; max-width: 450px; margin: 50px auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-.input-group { display: flex; gap: 10px; margin-bottom: 15px; }
-input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #262636; color: #fff; outline: none; }
-button { padding: 10px 15px; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; font-weight: bold; }
-button:hover { background: #2563eb; }
-.primary-btn { width: 100%; margin-top: 10px; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  background: #0f0f12; 
+  color: #fff; 
+  margin: 0; 
+  padding: 20px; 
+}
 
-.phrase-box { background: #000; padding: 10px; border-radius: 6px; font-family: monospace; color: #10b981; margin: 10px 0; border: 1px dashed #10b981; text-align: center; }
+/* Verification/Input Card */
+.card { 
+  background: #1a1a24; 
+  max-width: 450px; 
+  margin: 50px auto; 
+  padding: 25px; 
+  border-radius: 12px; 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+}
 
-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d3d; padding-bottom: 15px; margin-bottom: 20px; }
-#search-bar { max-width: 300px; }
+.input-group { 
+  display: flex; 
+  gap: 10px; 
+  margin-bottom: 15px; 
+}
 
-.horizontal-scroll { display: flex; overflow-x: auto; gap: 20px; padding: 10px 0; scroll-behavior: smooth; }
-.horizontal-scroll::-webkit-scrollbar { height: 8px; }
-.horizontal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+input { 
+  flex: 1; 
+  padding: 10px; 
+  border-radius: 6px; 
+  border: 1px solid #333; 
+  background: #262636; 
+  color: #fff; 
+  outline: none; 
+}
 
-.game-card { background: #1a1a24; border-radius: 10px; min-width: 250px; width: 250px; padding: 15px; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
-.game-card:hover, .game-card.active { border-color: #3b82f6; }
-.game-card h3 { margin: 0 0 10px 0; font-size: 16px; word-break: break-word; }
+button { 
+  padding: 10px 15px; 
+  border: none; 
+  border-radius: 6px; 
+  background: #3b82f6; 
+  color: white; 
+  cursor: pointer; 
+  font-weight: bold; 
+}
 
-.badge-drawer { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; margin-top: 15px; border-top: 1px solid #2d2d3d; padding-top: 15px; }
-.badge-item { background: #262636; border-radius: 6px; padding: 5px; text-align: center; }
-.badge-item span { font-size: 10px; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button:hover { 
+  background: #2563eb; 
+}
+
+.phrase-box { 
+  background: #000; 
+  padding: 10px; 
+  border-radius: 6px; 
+  font-family: monospace; 
+  color: #10b981; 
+  margin: 10px 0; 
+  border: 1px dashed #10b981; 
+  text-align: center; 
+}
+
+/* Main App Layout */
+header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  border-bottom: 1px solid #2d2d3d; 
+  padding-bottom: 15px; 
+  margin-bottom: 20px; 
+}
+
+#search-bar { 
+  max-width: 300px; 
+}
+
+/* Responsive Badge Grid */
+.horizontal-scroll { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+  gap: 20px; 
+  padding: 10px 0; 
+}
+
+/* Badge Cards */
+.game-card { 
+  background: #1a1a24; 
+  border-radius: 10px; 
+  padding: 15px; 
+  border: 1px solid #2d2d3d; 
+  transition: transform 0.2s, border-color 0.2s; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.game-card:hover { 
+  border-color: #3b82f6; 
+  transform: translateY(-2px);
+}
+
+.game-card h3 { 
+  margin: 0 0 8px 0; 
+  font-size: 16px; 
+  word-break: break-word; 
+  color: #ffffff;
+}
+
+.game-card p {
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  color: #a1a1aa;
+}
+
+.game-card small {
+  color: #3b82f6;
+  font-weight: bold;
+}
