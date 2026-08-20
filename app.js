@@ -74,39 +74,41 @@ async function loadBadgesAndGames() {
   loading.style.display = 'block';
   loading.innerText = 'Fetching badges from Roblox...';
   
-  let allBadges = [];
+  let rawBadges = [];
   let cursor = "";
 
   try {
-    // Fetch up to 2 pages of badges
-    for (let i = 0; i < 2; i++) {
+    // Fetch pages of received badges
+    for (let i = 0; i < 3; i++) {
       const res = await fetch(`${PROXY_URL}/api/badges/${currentUserId}?cursor=${cursor}`);
       const data = await res.json();
       
       if (data && Array.isArray(data.data)) {
-        allBadges.push(...data.data);
+        rawBadges.push(...data.data);
       }
       
       if (!data || !data.nextPageCursor) break;
       cursor = data.nextPageCursor;
     }
 
-    if (allBadges.length === 0) {
+    if (rawBadges.length === 0) {
       loading.innerText = 'No badges found for this account (or inventory is set to private).';
       return;
     }
 
-    loading.innerText = `Found ${allBadges.length} badges. Loading game information...`;
-
-    // Group Badges by Universe ID
+    // Group Badges by Universe ID (Unwrapping Roblox's badge object structure)
     const grouped = {};
-    allBadges.forEach(badge => {
-      const uId = (badge.awarder && badge.awarder.id) ? badge.awarder.id : 'unknown';
+    rawBadges.forEach(item => {
+      const badgeObj = item.badge || item; // Handles nested badge object
+      const uId = (badgeObj.awarder && badgeObj.awarder.id) ? badgeObj.awarder.id : 'unknown';
+      
       if (!grouped[uId]) grouped[uId] = [];
-      grouped[uId].push(badge);
+      grouped[uId].push(badgeObj);
     });
 
     const universeIds = Object.keys(grouped).filter(id => id !== 'unknown');
+
+    loading.innerText = `Found badges across ${universeIds.length} games. Loading details...`;
 
     // Create default game structures
     gamesData = universeIds.map(uId => ({
