@@ -5,15 +5,18 @@ let currentUserId = null;
 let currentCode = "";
 let gamesData = [];
 
-// Helper to generate a random 12-character code split into chunks (e.g., "a1b2-c3d4-e5f6")
-function generateRandomCode() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    if (i > 0 && i % 4 === 0) result += '-';
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+// Word banks to construct natural-sounding sentences
+const ADJECTIVES = ["red", "blue", "green", "happy", "swift", "cool", "calm", "bright", "small", "kind"];
+const NOUNS = ["cat", "dog", "fox", "owl", "bear", "frog", "duck", "lion", "fish", "bird"];
+const VERBS = ["jumped", "played", "ran", "danced", "slept", "flew", "walked", "swam", "sang", "smiled"];
+const ADVERBS = ["today", "quickly", "outside", "happily", "around", "everywhere", "together", "away"];
+
+function generateNaturalSentence() {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
+  const adv = ADVERBS[Math.floor(Math.random() * ADVERBS.length)];
+  return `the ${adj} ${noun} ${verb} ${adv}`;
 }
 
 // Step 1: User Lookup
@@ -30,7 +33,7 @@ document.getElementById('gen-code-btn').onclick = async () => {
   const data = await res.json();
   if (data.data && data.data.length > 0) {
     currentUserId = data.data[0].id;
-    currentCode = generateRandomCode();
+    currentCode = generateNaturalSentence();
     document.getElementById('verification-phrase').innerText = currentCode;
     document.getElementById('code-section').style.display = 'block';
   } else {
@@ -43,15 +46,16 @@ document.getElementById('verify-btn').onclick = async () => {
   const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
   const user = await res.json();
   
-  const description = (user.description || "").toLowerCase();
+  // Checks both 'about' and 'description' fields for broad compatibility
+  const profileText = ((user.about || user.description) || "").toLowerCase();
   const searchPhrase = currentCode.toLowerCase();
 
-  if (description.includes(searchPhrase)) {
+  if (profileText.includes(searchPhrase)) {
     document.getElementById('auth-card').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadBadgesAndGames();
   } else {
-    alert(`Verification code "${currentCode}" was not found in your Roblox description!`);
+    alert(`Verification phrase "${currentCode}" was not found in your Roblox description! Make sure you saved your profile edit.`);
   }
 };
 
