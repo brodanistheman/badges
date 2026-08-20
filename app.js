@@ -1,202 +1,89 @@
 const PROXY_URL = "https://badges.brodanistheman.workers.dev";
+let loadedBadges = [];
 
-let currentUserId = null;
-let currentCode = "";
-let gamesData = [];
-
-const ADJECTIVES = ["red", "blue", "green", "happy", "swift", "cool", "calm", "bright", "small", "kind"];
-const NOUNS = ["cat", "dog", "fox", "owl", "bear", "frog", "duck", "lion", "fish", "bird"];
-const VERBS = ["jumped", "played", "ran", "danced", "slept", "flew", "walked", "swam", "sang", "smiled"];
-const ADVERBS = ["today", "quickly", "outside", "happily", "around", "everywhere", "together", "away"];
-
-function generateNaturalSentence() {
-  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const verb = VERBS[Math.floor(Math.random() * VERBS.length)];
-  const adv = ADVERBS[Math.floor(Math.random() * ADVERBS.length)];
-  return `the ${adj} ${noun} ${verb} ${adv}`;
-}
-
-// 1. Get Code Button
+// Handle Button Click
 document.getElementById('gen-code-btn').onclick = async () => {
-  const username = document.getElementById('username-input').value.trim();
-  if (!username) return alert("Please enter a username");
+  const universeId = document.getElementById('username-input').value.trim();
+  if (!universeId) return alert("Please enter a Game Universe ID");
 
-  try {
-    const res = await fetch(`${PROXY_URL}/api/get-user-id`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [username], excludeBannedUsers: true })
-    });
+  document.getElementById('auth-card').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-
-    const data = await res.json();
-    if (data.data && data.data.length > 0) {
-      currentUserId = data.data[0].id;
-      currentCode = generateNaturalSentence();
-      document.getElementById('verification-phrase').innerText = currentCode;
-      document.getElementById('code-section').style.display = 'block';
-    } else {
-      alert("Username not found on Roblox.");
-    }
-  } catch (err) {
-    alert("Error fetching user ID. See console for details.");
-    console.error(err);
-  }
+  await fetchGameBadges(universeId);
 };
 
-// 2. Verify Button
-document.getElementById('verify-btn').onclick = async () => {
-  try {
-    const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
-    const user = await res.json();
-    
-    const profileText = ((user.about || user.description) || "").toLowerCase();
-    const searchPhrase = currentCode.toLowerCase();
-
-    if (profileText.includes(searchPhrase)) {
-      document.getElementById('auth-card').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      loadBadgesAndGames();
-    } else {
-      alert(`Verification phrase "${currentCode}" was not found in your Roblox description!`);
-    }
-  } catch (err) {
-    alert("Error checking profile. See console for details.");
-    console.error(err);
-  }
-};
-
-// 3. Load User Earned Badges
-async function loadBadgesAndGames() {
+// Fetch Badges for Game Universe
+async function fetchGameBadges(universeId) {
   const loading = document.getElementById('loading');
   loading.style.display = 'block';
-  loading.innerText = 'Fetching badges from Roblox...';
+  loading.innerText = `Fetching badges for Game Universe #${universeId}...`;
 
-  let rawBadges = [];
+  let allBadges = [];
   let cursor = "";
 
   try {
     for (let i = 0; i < 3; i++) {
       const url = cursor 
-        ? `${PROXY_URL}/api/badges/${currentUserId}?cursor=${cursor}`
-        : `${PROXY_URL}/api/badges/${currentUserId}`;
+        ? `${PROXY_URL}/api/game-badges/${universeId}?cursor=${cursor}`
+        : `${PROXY_URL}/api/game-badges/${universeId}`;
 
       const res = await fetch(url);
       if (!res.ok) {
-        console.error(`Fetch error: ${res.status}`);
+        console.error(`Fetch error status: ${res.status}`);
         break;
       }
 
       const data = await res.json();
       if (data && Array.isArray(data.data)) {
-        rawBadges.push(...data.data);
+        allBadges.push(...data.data);
       }
 
       if (!data || !data.nextPageCursor) break;
       cursor = data.nextPageCursor;
     }
 
-    if (rawBadges.length === 0) {
-      loading.innerText = 'No badges found for this user (or inventory is set to private).';
+    if (allBadges.length === 0) {
+      loading.innerText = 'No badges found for this Game Universe ID.';
       return;
     }
 
-    const grouped = {};
-    rawBadges.forEach(item => {
-      const badgeObj = item.badge || item;
-      const uId = (badgeObj.awarder && badgeObj.awarder.id) ? badgeObj.awarder.id : 'Other / Special Badges';
-
-      if (!grouped[uId]) grouped[uId] = [];
-      grouped[uId].push(badgeObj);
-    });
-
-    const universeIds = Object.keys(grouped).filter(id => id !== 'Other / Special Badges');
-    loading.innerText = `Found badges across ${universeIds.length} games. Fetching game info...`;
-
-    gamesData = Object.keys(grouped).map(uId => ({
-      name: uId === 'Other / Special Badges' ? 'Other Badges' : `Game Universe #${uId}`,
-      universeId: uId,
-      badges: grouped[uId]
-    }));
-
-    if (universeIds.length > 0) {
-      try {
-        const gameRes = await fetch(`${PROXY_URL}/api/games`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ universeIds })
-        });
-        const gameInfo = await gameRes.json();
-
-        if (gameInfo && Array.isArray(gameInfo.data)) {
-          const nameMap = {};
-          gameInfo.data.forEach(g => { nameMap[g.id] = g.name; });
-
-          gamesData.forEach(game => {
-            if (nameMap[game.universeId]) {
-              game.name = nameMap[game.universeId];
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Could not retrieve game titles.");
-      }
-    }
-
+    loadedBadges = allBadges;
     loading.style.display = 'none';
-    renderGames(gamesData);
+    renderBadges(loadedBadges);
   } catch (err) {
-    loading.innerText = 'An error occurred while loading badges.';
-    console.error("loadBadgesAndGames error:", err);
+    loading.innerText = 'Error loading game badges. Check console.';
+    console.error("fetchGameBadges Error:", err);
   }
 }
 
-// 4. Render Interface
-function renderGames(games) {
+// Render Badge Cards
+function renderBadges(badges) {
   const container = document.getElementById('game-list');
   container.innerHTML = "";
 
-  if (games.length === 0) {
-    container.innerHTML = "<p>No badges found.</p>";
+  if (badges.length === 0) {
+    container.innerHTML = "<p>No matching badges found.</p>";
     return;
   }
 
-  games.forEach(game => {
+  badges.forEach(badge => {
     const card = document.createElement('div');
     card.className = 'game-card';
     card.innerHTML = `
-      <h3>${game.name}</h3>
-      <small>${game.badges.length} Badges Earned</small>
+      <h3>${badge.name || 'Unnamed Badge'}</h3>
+      <p style="font-size: 0.85em; opacity: 0.8;">${badge.description || 'No description provided.'}</p>
+      <small>Badge ID: ${badge.id}</small>
     `;
-
-    const drawer = document.createElement('div');
-    drawer.className = 'badge-drawer';
-    drawer.style.display = 'none';
-
-    game.badges.forEach(b => {
-      drawer.innerHTML += `
-        <div class="badge-item">
-          <span>${b.name || 'Badge'}</span>
-        </div>
-      `;
-    });
-
-    card.onclick = () => {
-      const isVisible = drawer.style.display === 'grid';
-      drawer.style.display = isVisible ? 'none' : 'grid';
-      card.classList.toggle('active', !isVisible);
-    };
-
-    card.appendChild(drawer);
     container.appendChild(card);
   });
 }
 
-// 5. Search Filter
+// Filter Badges with Search Input
 document.getElementById('search-bar').oninput = (e) => {
   const query = e.target.value.toLowerCase();
-  const filtered = gamesData.filter(g => g.name.toLowerCase().includes(query));
-  renderGames(filtered);
+  const filtered = loadedBadges.filter(b => 
+    (b.name && b.name.toLowerCase().includes(query)) ||
+    (b.description && b.description.toLowerCase().includes(query))
+  );
+  renderBadges(filtered);
 };
