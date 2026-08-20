@@ -5,6 +5,17 @@ let currentUserId = null;
 let currentCode = "";
 let gamesData = [];
 
+// Helper to generate a random 12-character code split into chunks (e.g., "a1b2-c3d4-e5f6")
+function generateRandomCode() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 12; i++) {
+    if (i > 0 && i % 4 === 0) result += '-';
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 // Step 1: User Lookup
 document.getElementById('gen-code-btn').onclick = async () => {
   const username = document.getElementById('username-input').value.trim();
@@ -19,7 +30,7 @@ document.getElementById('gen-code-btn').onclick = async () => {
   const data = await res.json();
   if (data.data && data.data.length > 0) {
     currentUserId = data.data[0].id;
-    currentCode = `verify-${Math.random().toString(36).substring(2, 8)}`;
+    currentCode = generateRandomCode();
     document.getElementById('verification-phrase').innerText = currentCode;
     document.getElementById('code-section').style.display = 'block';
   } else {
@@ -32,12 +43,15 @@ document.getElementById('verify-btn').onclick = async () => {
   const res = await fetch(`${PROXY_URL}/api/verify-profile/${currentUserId}`);
   const user = await res.json();
   
-  if (user.description && user.description.includes(currentCode)) {
+  const description = (user.description || "").toLowerCase();
+  const searchPhrase = currentCode.toLowerCase();
+
+  if (description.includes(searchPhrase)) {
     document.getElementById('auth-card').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadBadgesAndGames();
   } else {
-    alert("Verification code not found in your Roblox description yet!");
+    alert(`Verification code "${currentCode}" was not found in your Roblox description!`);
   }
 };
 
